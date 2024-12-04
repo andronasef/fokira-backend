@@ -7,11 +7,13 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { GetUserPostsDto } from './dto/get-user-posts.dto';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -51,6 +53,19 @@ export class PostsController {
   @ApiResponse({ status: 404, description: 'Post not found.' })
   findOne(@Param('id') id: string) {
     return this.postsService.findOne(id);
+  }
+
+  @Get('user/:userId')
+  @ApiOperation({ summary: 'Get user posts with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns paginated user posts',
+  })
+  async getUserPosts(
+    @Param('userId') userId: string,
+    @Query() query: GetUserPostsDto,
+  ) {
+    return this.postsService.getUserPosts(userId, query);
   }
 
   @Delete(':id')
