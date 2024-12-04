@@ -1,19 +1,24 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Req,
+  Get,
+  Param,
+  Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
-import { PostsService } from './posts.service';
-import { CreatePostDto } from './dto/create-post.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CreatePostDto } from './dto/create-post.dto';
 import { GetUserPostsDto } from './dto/get-user-posts.dto';
+import { PostsService } from './posts.service';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -24,7 +29,10 @@ export class PostsController {
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new post' })
-  @ApiResponse({ status: 201, description: 'The post has been successfully created.' })
+  @ApiResponse({
+    status: 201,
+    description: 'The post has been successfully created.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   create(@Req() req, @Body() createPostDto: CreatePostDto) {
     return this.postsService.create(req.user.id, createPostDto);
