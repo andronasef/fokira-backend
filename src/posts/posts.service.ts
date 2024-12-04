@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 
@@ -6,27 +6,77 @@ import { CreatePostDto } from './dto/create-post.dto';
 export class PostsService {
   constructor(private prisma: PrismaService) {}
 
-  // Calculate duration based on word count (approximately 2 seconds per 5 words)
+  private getWordCount(text: string): number {
+    return text
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word.length > 0).length;
+  }
+
   private calculateDuration(content: string): number {
-    const wordCount = content.trim().split(/\s+/).length;
+    const wordCount = this.getWordCount(content);
     return Math.ceil(wordCount / 5) * 2000; // duration in milliseconds
   }
 
+  private validateSlideContent(content: string, index: number) {
+    const wordCount = this.getWordCount(content);
+    if (wordCount === 0) {
+      throw new BadRequestException(
+        `Slide ${index + 1} content must contain at least 1 word`,
+      );
+    }
+    if (wordCount > 30) {
+      throw new BadRequestException(
+        `Slide ${index + 1} content must not exceed 30 words`,
+      );
+    }
+  }
+
   async create(userId: string, createPostDto: CreatePostDto) {
+    // Validate title
+    if (!createPostDto.title?.trim()) {
+      throw new BadRequestException('Title is required');
+    }
+
+    if (createPostDto.title.length > 100) {
+      throw new BadRequestException('Title must not exceed 100 characters');
+    }
+
+    // Validate slides
+    if (!createPostDto.slides?.length) {
+      throw new BadRequestException('At least one slide is required');
+    }
+
+    // Validate each slide's content
+    createPostDto.slides.forEach((slide, index) => {
+      this.validateSlideContent(slide.content, index);
+    });
+
     return this.prisma.post.create({
       data: {
+        title: createPostDto.title.trim(),
         authorId: userId,
         slides: {
           create: createPostDto.slides.map((slide, index) => ({
-            content: slide.content,
+            content: slide.content.trim(),
             order: index,
             duration: this.calculateDuration(slide.content),
           })),
         },
       },
       include: {
-        slides: true,
-        author: true,
+        slides: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
   }
@@ -39,7 +89,13 @@ export class PostsService {
             order: 'asc',
           },
         },
-        author: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -48,7 +104,7 @@ export class PostsService {
   }
 
   async findOne(id: string) {
-    return this.prisma.post.findUnique({
+    const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
         slides: {
@@ -56,9 +112,21 @@ export class PostsService {
             order: 'asc',
           },
         },
-        author: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    return post;
   }
 
   async findUserPosts(userId: string) {
@@ -72,7 +140,13 @@ export class PostsService {
             order: 'asc',
           },
         },
-        author: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -89,7 +163,9 @@ export class PostsService {
     });
 
     if (!post) {
-      return null;
+      throw new BadRequestException(
+        'Post not found or you do not have permission to delete it',
+      );
     }
 
     return this.prisma.post.delete({
