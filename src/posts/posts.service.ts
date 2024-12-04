@@ -152,7 +152,7 @@ export class PostsService {
           createdAt: 'desc',
         },
         skip,
-        take: limit,
+        take: Number(limit),
       }),
       this.prisma.post.count({
         where: {
