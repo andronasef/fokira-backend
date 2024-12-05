@@ -19,6 +19,7 @@ import {
 import { CreatePostDto } from './dto/create-post.dto';
 import { GetUserPostsDto } from './dto/get-user-posts.dto';
 import { PostsService } from './posts.service';
+import { DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 
 @ApiTags('posts')
 @Controller('posts')
@@ -41,8 +42,11 @@ export class PostsController {
   @Get()
   @ApiOperation({ summary: 'Get all posts' })
   @ApiResponse({ status: 200, description: 'Return all posts.' })
-  findAll() {
-    return this.postsService.findAll();
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.postsService.findAll(page, limit);
   }
 
   @Get('my-posts')

@@ -21,4 +21,18 @@ export class UsersService {
 
     return user;
   }
+
+  async getLatestUsers() {
+    return this.prisma.user.findMany({
+      take: 6,
+      orderBy: {
+        createdAt: 'desc'
+      },
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+      }
+    });
+  }
 }
