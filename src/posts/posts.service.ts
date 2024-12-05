@@ -81,26 +81,39 @@ export class PostsService {
     });
   }
 
-  async findAll() {
-    return this.prisma.post.findMany({
-      include: {
-        slides: {
-          orderBy: {
-            order: 'asc',
-          },
+  async findAll(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: 'desc',
         },
-        author: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
           },
+          slides: true,
         },
+      }),
+      this.prisma.post.count(),
+    ]);
+
+    return {
+      items: posts,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
   }
 
   async findOne(id: string) {
