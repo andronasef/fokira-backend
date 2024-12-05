@@ -18,4 +18,9 @@ export class UsersController {
   async getPublicProfile(@Param('id') id: string) {
     return this.usersService.findPublicProfile(id);
   }
+
+  @Get('latest')
+  async getLatestUsers() {
+    return this.usersService.getLatestUsers();
+  }
 }
