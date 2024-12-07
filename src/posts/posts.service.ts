@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 @Injectable()
 export class PostsService {
@@ -14,20 +15,17 @@ export class PostsService {
   }
 
   private calculateDuration(content: string): number {
-    const wordCount = this.getWordCount(content);
-    return Math.ceil(wordCount / 5) * 2000; // duration in milliseconds
+    // Duration calculation logic (assuming 1 second for every 5 characters, minimum 3 seconds)
+    return Math.max(3, Math.ceil(content.length / 5));
   }
 
   private validateSlideContent(content: string, index: number) {
-    const wordCount = this.getWordCount(content);
-    if (wordCount === 0) {
-      throw new BadRequestException(
-        `Slide ${index + 1} content must contain at least 1 word`,
-      );
+    if (!content || content.trim().length === 0) {
+      throw new BadRequestException(`Slide ${index + 1} content cannot be empty`);
     }
-    if (wordCount > 30) {
+    if (content.length > 280) {
       throw new BadRequestException(
-        `Slide ${index + 1} content must not exceed 30 words`,
+        `Slide ${index + 1} content must not exceed 280 characters`,
       );
     }
   }
@@ -230,6 +228,77 @@ export class PostsService {
 
     return this.prisma.post.delete({
       where: { id },
+    });
+  }
+
+  async update(id: string, updatePostDto: UpdatePostDto, userId: string) {
+    // First check if post exists and belongs to user
+    const post = await this.prisma.post.findUnique({
+      where: { id },
+      include: { slides: true },
+    });
+
+    if (!post) {
+      throw new BadRequestException('Post not found');
+    }
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('You can only update your own posts');
+    }
+
+    // Validate title if provided
+    if (updatePostDto.title && updatePostDto.title.length > 100) {
+      throw new BadRequestException('Title must not exceed 100 characters');
+    }
+
+    // Validate slides if provided
+    if (updatePostDto.slides) {
+      if (updatePostDto.slides.length === 0) {
+        throw new BadRequestException('At least one slide is required');
+      }
+
+      // Validate each slide's content
+      updatePostDto.slides.forEach((slide, index) => {
+        this.validateSlideContent(slide.content, index);
+      });
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+    if (updatePostDto.title) {
+      updateData.title = updatePostDto.title.trim();
+    }
+
+    // Update post and slides
+    return this.prisma.post.update({
+      where: { id },
+      data: {
+        ...updateData,
+        ...(updatePostDto.slides && {
+          slides: {
+            deleteMany: {},
+            create: updatePostDto.slides.map((slide, index) => ({
+              content: slide.content.trim(),
+              order: index,
+              duration: this.calculateDuration(slide.content),
+            })),
+          },
+        }),
+      },
+      include: {
+        slides: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
     });
   }
 }

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -17,6 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 import { GetUserPostsDto } from './dto/get-user-posts.dto';
 import { PostsService } from './posts.service';
 import { DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
@@ -89,5 +91,23 @@ export class PostsController {
   @ApiResponse({ status: 404, description: 'Post not found.' })
   remove(@Param('id') id: string, @Req() req) {
     return this.postsService.remove(id, req.user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update a post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Post has been successfully updated.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 404, description: 'Post not found.' })
+  update(
+    @Param('id') id: string,
+    @Body() updatePostDto: UpdatePostDto,
+    @Req() req,
+  ) {
+    return this.postsService.update(id, updatePostDto, req.user.id);
   }
 }
