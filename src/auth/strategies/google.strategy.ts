@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, VerifyCallback } from 'passport-google-oauth20';
-import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 
 @Injectable()
@@ -10,12 +10,10 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
   ) {
-    const backendUrl = configService.get<string>('BACKEND_URL');
-
     super({
       clientID: configService.get<string>('GOOGLE_CLIENT_ID'),
       clientSecret: configService.get<string>('GOOGLE_CLIENT_SECRET'),
-      callbackURL: `${backendUrl}/auth/google/callback`,
+      callbackURL: `https://fokira-backend.vercel.app/auth/google/callback`,
       scope: ['email', 'profile'],
     });
   }
