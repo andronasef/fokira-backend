@@ -23,7 +23,22 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+    customCss: '',
+    customJsStr: '',
+    customfavIcon:
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/favicon-32x32.png',
+    customSiteTitle: 'WhatsApp Status Blog API',
+    swaggerUrl: '/api-json',
+    customCssUrl: [
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css',
+    ],
+    customJs: [
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js',
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js',
+      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-init.js',
+    ],
+  });
 
   const port = process.env.PORT || 8000;
   await app.listen(port);
